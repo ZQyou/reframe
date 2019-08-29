@@ -88,6 +88,8 @@ class TestStats:
             job_type = 'local' if check.is_local() else 'batch job'
             jobid = check.job.jobid if check.job else -1
             report.append('  * Job type: %s (id=%s)' % (job_type, jobid))
+            nodelist = check.job.nodelist or [] if check.job else ['login']
+            report.append('  * Nodelist: %s ' % ('+'.join(nodelist)))
             report.append('  * Maintainers: %s' % check.maintainers)
             report.append('  * Failing phase: %s' % tf.failed_stage)
             reason = '  * Reason: '

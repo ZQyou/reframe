@@ -15,7 +15,7 @@ import reframe.utility.color as color
 import reframe.core.debug as debug
 import reframe.utility.os_ext as os_ext
 from reframe.core.exceptions import ConfigError, LoggingError
-
+import reframe.core.runtime as runtime
 
 # Global configuration options for logging
 LOG_CONFIG_OPTS = {
@@ -367,6 +367,7 @@ class LoggerAdapter(logging.LoggerAdapter):
             {
                 'check_name': 'reframe',
                 'check_jobid': '-1',
+                'check_nodelist': None,
                 'check_info': 'reframe',
                 'check_system': None,
                 'check_partition': None,
@@ -383,6 +384,7 @@ class LoggerAdapter(logging.LoggerAdapter):
                 'osgroup': os_ext.osgroup() or '<unknown>',
                 'check_tags': None,
                 'version': reframe.VERSION,
+                'check_modules': None
             }
         )
         self.check = check
@@ -424,6 +426,18 @@ class LoggerAdapter(logging.LoggerAdapter):
 
         if self.check.job:
             self.extra['check_jobid'] = self.check.job.jobid
+            nodelist = self.check.job.nodelist or []
+            self.extra['check_nodelist'] = '+'.join(nodelist)
+
+        if self.check.modules:
+            self.extra['check_modules'] = ' '.join(self.check.modules)
+
+        module_map = runtime.runtime().modules_system.module_map
+        if module_map:
+            module_list = []
+            for m in module_map:
+                module_list += module_map[m]
+            self.extra['check_modules'] = ' '.join(module_list)
 
     def log_performance(self, level, tag, value, ref,
                         low_thres, upper_thres, unit=None, *, msg=None):
