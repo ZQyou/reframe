@@ -157,7 +157,9 @@ class PbsJob(sched.Job):
             jobstat, *info = jobstat_match.group('jobstat').split('.', maxsplit=2)
             if jobstat != 'R' and jobstat != 'Q':
                 job_done = True
-        done = os.path.exists(self.stdout) and os.path.exists(self.stderr) and job_done
+        with os_ext.change_dir(self.workdir):
+            done = os.path.exists(self.stdout) and os.path.exists(self.stderr) and job_done
+
         if done:
             t_now = datetime.now()
             self._time_finished = self._time_finished or t_now
