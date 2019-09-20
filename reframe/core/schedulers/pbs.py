@@ -94,7 +94,7 @@ class PbsJob(sched.Job):
         preamble += self._emit_lselect_option()
 
         # PBS starts the job in the home directory by default
-        preamble.append('cd %s' % self.workdir)
+        preamble.append('cd $PBS_O_WORKDIR')
         return preamble
 
     def get_all_nodes(self):
