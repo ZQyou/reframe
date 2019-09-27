@@ -91,10 +91,14 @@ class PbsJob(sched.Job):
             preamble.append(
                 self._format_option('-q %s' % self.sched_partition))
 
+        if self.sched_account:
+            preamble.append(
+                self._format_option('-A %s' % self.sched_account))
+
         preamble += self._emit_lselect_option()
 
         # PBS starts the job in the home directory by default
-        preamble.append('cd $PBS_O_WORKDIR')
+        preamble.append('\ncd $PBS_O_WORKDIR')
         return preamble
 
     def get_all_nodes(self):
