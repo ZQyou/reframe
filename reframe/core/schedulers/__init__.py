@@ -49,6 +49,7 @@ class Job(abc.ABC):
     _jobid = fields.TypedField('_jobid', int, type(None))
     _exitcode = fields.TypedField('_exitcode', int, type(None))
     _state = fields.TypedField('_state', str, type(None))
+    _nodelist = fields.TypedField('_nodelist', list, type(None))
 
     # The sched_* arguments are exposed also to the frontend
     def __init__(self,
