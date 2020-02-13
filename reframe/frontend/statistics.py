@@ -108,17 +108,17 @@ class TestStats:
                 # This shouldn't happen...
                 report.append('Unknown error.')
 
-            # Collect failures for statistics
+            # Collect failures for summary table
             if not tf.failed_stage in failures:
                 failures[tf.failed_stage] = []
             failures[tf.failed_stage].append([check.name, environ_name, partname, reason])
 
         report.append(line_width * '-')
 
-        # Generate statistics
-        row_format = "{:<8} {:<6} {:<62}"
+        # Generate summary table
+        row_format = "{:<11} {:<5} {:<60}"
+        hline = row_format.format(11*'-', 5*'-', 60*'-')
         header = row_format.format('Phase', '#', 'Description')
-        hline = row_format.format(8*'-', 6*'-', 62*'-')
         stage_descr = {
             'setup': "Failed to set up test's environment and path",
             'compile': "Failed to compile the source code in the current environemnt", 

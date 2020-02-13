@@ -232,7 +232,7 @@ def main():
         help='Test a non-default Cray PE')
     misc_options.add_argument(
         '--rerun-failed', action='store_true',
-        help='Print run options for failed test cases in summary')
+        help='Print run options for all failed tests in summary table')
     misc_options.add_argument(
         '--show-config', action='store_true',
         help='Print configuration of the current system and exit')
