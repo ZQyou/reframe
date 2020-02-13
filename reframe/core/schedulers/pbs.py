@@ -10,6 +10,7 @@ import itertools
 import re
 import time
 from datetime import datetime
+from random import shuffle
 
 import reframe.core.schedulers as sched
 import reframe.utility.os_ext as os_ext
@@ -44,9 +45,17 @@ class PbsJobScheduler(sched.JobScheduler):
         num_cpus_per_task = job.num_cpus_per_task or 1
         num_nodes = job.num_tasks // num_tasks_per_node
         num_cpus_per_node = num_tasks_per_node * num_cpus_per_task
-        select_opt = '-l select=%s:mpiprocs=%s:ncpus=%s' % (num_nodes,
-                                                            num_tasks_per_node,
-                                                            num_cpus_per_node)
+        if job.sched_nodelist:
+            nodelist = job.sched_nodelist.split('+')
+            if len(nodelist) < num_nodes:
+                raise JobError('Insufficient number of nodes '
+                               'in the nodelist')
+            shuffle(nodelist)
+            select_opt = '-l nodes=%s:ppn=%s' % (nodelist[0], num_cpus_per_node)
+            for x in range(1,num_nodes):
+                select_opt = select_opt + '+%s:ppn=%s' % (nodelist[x], num_tasks_per_node)
+        else:
+            select_opt = '-l nodes=%s:ppn=%s' % (num_nodes, num_cpus_per_node)
 
         # Options starting with `-` are emitted in separate lines
         rem_opts = []
@@ -81,10 +90,15 @@ class PbsJobScheduler(sched.JobScheduler):
             preamble.append(
                 self._format_option('-q %s' % job.sched_partition))
 
+        if job.sched_account:
+            preamble.append(
+                job._format_option('-A %s' % job.sched_account))
+
         preamble += self._emit_lselect_option(job)
 
         # PBS starts the job in the home directory by default
-        preamble.append('cd %s' % job.workdir)
+        preamble.append('\ncd $PBS_O_WORKDIR')
+        #preamble.append('cd %s' % job.workdir)
         return preamble
 
     def allnodes(self):
@@ -124,13 +138,32 @@ class PbsJobScheduler(sched.JobScheduler):
         getlogger().debug('cancelling job (id=%s)' % jobid)
         _run_strict('qdel %s' % jobid, timeout=settings().job_submit_timeout)
 
+    def _get_nodelist(self, job, jobstat):
+        # exec_host = o0580/0-27+o0444/0-27+o0345/0-27
+        nodelist_match = re.search('exec_host = (?P<nodelist>\S+)', jobstat.stdout)
+        if nodelist_match:
+            nodelist = [ x.split('/')[0] for x in nodelist_match.group('nodelist').split('+') ]
+            nodelist.sort()
+            job.nodelist = nodelist
+
     def finished(self, job):
+        cmd = 'qstat -f %s' % (str(job.jobid))
+        completed = _run_strict(cmd, timeout=settings().job_submit_timeout)
+        jobstat_match = re.search('job_state = (?P<jobstat>\S+)', completed.stdout)
+        job_done = False
+        if not jobstat_match:
+            job_done = True
+        else:
+            jobstat, *info = jobstat_match.group('jobstat').split('.', maxsplit=2)
+            if jobstat != 'R' and jobstat != 'Q':
+                job_done = True
         with os_ext.change_dir(job.workdir):
-            done = os.path.exists(job.stdout) and os.path.exists(job.stderr)
+            done = os.path.exists(job.stdout) and os.path.exists(job.stderr) and job_done
 
         if done:
             t_now = datetime.now()
             self._time_finished = self._time_finished or t_now
             time_from_finish = (t_now - self._time_finished).total_seconds()
+            self._get_nodelist(job, completed)
 
         return done and time_from_finish > PBS_OUTPUT_WRITEBACK_WAIT
