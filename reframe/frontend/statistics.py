@@ -121,7 +121,20 @@ class TestStats:
             partname = partition.fullname if partition else 'None'
             environ_name = (check.current_environ.name
                             if check.current_environ else 'None')
+            module_tag = None
+            if tf.exc_info is not None:
+                from reframe.core.exceptions import format_exception
+
+                reason = format_exception(*tf.exc_info)
+                if  'load module' in reason:
+                    module_tag = ' (load module)'
+                elif 'show module' in reason:
+                    module_tag = ' (no module)'
+
             f = "[%s, %s, %s]" % (check.name, environ_name, partname)
+            if module_tag:
+                f += module_tag
+
             if tf.failed_stage not in failures:
                 failures[tf.failed_stage] = []
 
@@ -160,7 +173,7 @@ class TestStats:
         line_width = 78
         report_start = line_width * '='
         report_title = 'PERFORMANCE REPORT'
-        report_end = line_width * '-'
+        report_end = line_width * '_'
         report_body = []
         previous_name = ''
         previous_part = ''
