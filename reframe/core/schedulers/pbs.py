@@ -24,6 +24,16 @@ from reframe.core.schedulers.registry import register_scheduler
 # written to the corresponding files.
 PBS_OUTPUT_WRITEBACK_WAIT = 3
 
+JOB_STATES = {
+    'Q': 'QUEUED',
+    'H': 'HELD',
+    'R': 'RUNNING',
+    'E': 'EXITING',
+    'T': 'MOVED',
+    'W': 'WAITING',
+    'S': 'SUSPENDED',
+    'C': 'COMPLETED',
+}
 
 _run_strict = functools.partial(os_ext.run_command, check=True)
 
@@ -119,7 +129,7 @@ class PbsJobScheduler(sched.JobScheduler):
             raise JobError('could not retrieve the job id '
                            'of the submitted job')
 
-        jobid, *info = jobid_match.group('jobid').split('.', maxsplit=2)
+        jobid, *info = jobid_match.group('jobid').split('.', maxsplit=1)
         job.jobid = int(jobid)
         if info:
             self._pbs_server = info[0]
@@ -138,14 +148,68 @@ class PbsJobScheduler(sched.JobScheduler):
         getlogger().debug('cancelling job (id=%s)' % jobid)
         _run_strict('qdel %s' % jobid, timeout=settings().job_submit_timeout)
 
-    def _get_nodelist(self, job, jobstat):
+    def _get_nodelist(self, job, stdout):
         # exec_host = o0580/0-27+o0444/0-27+o0345/0-27
-        nodelist_match = re.search('exec_host = (?P<nodelist>\S+)', jobstat.stdout)
+        nodelist_match = re.search('exec_host = (?P<nodelist>\S+)', stdout)
         if nodelist_match:
             nodelist = [ x.split('/')[0] for x in nodelist_match.group('nodelist').split('+') ]
             nodelist.sort()
             job.nodelist = nodelist
 
+    def _update_state(self, job):
+        '''Check the status of the job.'''
+
+        completed = os_ext.run_command('qstat -f %s' % job.jobid)
+
+        # Depending on the configuration, completed jobs will remain on the job
+        # list for a limited time, or be removed upon completion.
+        # If qstat cannot find the jobid, it returns code 153.
+        if completed.returncode == 153:
+            getlogger().debug(
+                'jobid not known by scheduler, assuming job completed'
+            )
+            job.state = 'COMPLETED'
+            return                  # COMPLETED
+
+        if completed.returncode != 0:
+            raise JobError('qstat failed: %s' % completed.stderr, job.jobid)
+
+        # Update nodelist
+        self._get_nodelist(job, completed.stdout)
+
+        state_match = re.search(
+            r'^\s*job_state = (?P<state>[A-Z])', completed.stdout, re.MULTILINE
+        )
+        if not state_match:
+            getlogger().debug(
+                'job state not found (stdout follows)\n%s' % completed.stdout
+            )
+            return
+
+        state = state_match.group('state')
+        job.state = JOB_STATES[state]
+        if job.state == 'COMPLETED':
+            code_match = re.search(
+                r'^\s*exit_status = (?P<code>\d+)',
+                completed.stdout,
+                re.MULTILINE,
+            )
+            if not code_match:
+                return              # COMPLETED
+
+            job.exitcode = int(code_match.group('code'))
+
+    def finished(self, job):
+        try:
+            self._update_state(job)
+        except JobError as e:
+            # We ignore these exceptions at this point and we simply mark the
+            # job as unfinished.
+            getlogger().debug('ignoring error during polling: %s' % e)
+            return False
+        else:
+            return job.state == 'COMPLETED'
+"""
     def finished(self, job):
         cmd = 'qstat -f %s' % (str(job.jobid))
         completed = _run_strict(cmd, timeout=settings().job_submit_timeout)
@@ -154,7 +218,7 @@ class PbsJobScheduler(sched.JobScheduler):
         if not jobstat_match:
             job_done = True
         else:
-            jobstat, *info = jobstat_match.group('jobstat').split('.', maxsplit=2)
+            jobstat, *info = jobstat_match.group('jobstat').split('.', maxsplit=1)
             if jobstat != 'R' and jobstat != 'Q':
                 job_done = True
         with os_ext.change_dir(job.workdir):
@@ -167,3 +231,4 @@ class PbsJobScheduler(sched.JobScheduler):
             self._get_nodelist(job, completed)
 
         return done and time_from_finish > PBS_OUTPUT_WRITEBACK_WAIT
+"""
