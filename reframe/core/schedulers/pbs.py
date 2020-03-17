@@ -208,7 +208,13 @@ class PbsJobScheduler(sched.JobScheduler):
             getlogger().debug('ignoring error during polling: %s' % e)
             return False
         else:
-            return job.state == 'COMPLETED'
+            file_exist = False
+            with os_ext.change_dir(job.workdir):
+                file_exist = os.path.exists(job.stdout) and os.path.exists(job.stderr)
+            ### This is for Ruby
+            return job.state == 'COMPLETED' and file_exist
+#           return job.state == 'COMPLETED' 
+
 """
     def finished(self, job):
         cmd = 'qstat -f %s' % (str(job.jobid))
