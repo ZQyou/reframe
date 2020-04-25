@@ -102,7 +102,7 @@ class PbsJobScheduler(sched.JobScheduler):
 
         if job.sched_account:
             preamble.append(
-                job._format_option('-A %s' % job.sched_account))
+                self._format_option('-A %s' % job.sched_account))
 
         preamble += self._emit_lselect_option(job)
 

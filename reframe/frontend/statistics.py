@@ -131,7 +131,7 @@ class TestStats:
                 elif 'show module' in reason:
                     module_tag = ' (no module)'
 
-            f = "[%s, %s, %s]" % (check.name, environ_name, partname)
+            f = f'[{check.name}, {environ_name}, {partname}]'
             if module_tag:
                 f += module_tag
 
