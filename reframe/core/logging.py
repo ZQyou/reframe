@@ -382,6 +382,7 @@ class LoggerAdapter(logging.LoggerAdapter):
             {
                 'check_name': 'reframe',
                 'check_jobid': '-1',
+                'check_nodelist': None,
                 'check_job_completion_time': None,
                 'check_job_completion_time_unix': None,
                 'check_info': 'reframe',
@@ -401,6 +402,7 @@ class LoggerAdapter(logging.LoggerAdapter):
                 'osgroup': os_ext.osgroup() or '<unknown>',
                 'check_tags': None,
                 'version': os_ext.reframe_version(),
+                'check_modules': None,
             }
         )
         self.check = check
@@ -440,9 +442,14 @@ class LoggerAdapter(logging.LoggerAdapter):
 
         if self.check.job:
             self.extra['check_jobid'] = self.check.job.jobid
+            nodelist = self.check.job.nodelist or []
+            self.extra['check_nodelist'] = '+'.join(nodelist)
             if self.check.job.completion_time:
                 ct = self.check.job.completion_time
                 self.extra['check_job_completion_time_unix'] = ct
+
+        if self.check.modules:
+            self.extra['check_modules'] = ' '.join(self.check.modules)
 
     def log_performance(self, level, tag, value, ref,
                         low_thres, upper_thres, unit=None, *, msg=None):
