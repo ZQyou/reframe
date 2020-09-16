@@ -153,7 +153,16 @@ class SlurmJobScheduler(sched.JobScheduler):
     def emit_preamble(self, job):
         preamble = [
             self._format_option(job.name, '--job-name="{0}"'),
-            self._format_option(job.num_tasks, '--ntasks={0}'),
+        ]
+        if job.num_nodes:
+            preamble.append(
+                self._format_option(job.num_nodes, '--nodes={0}'),
+            )
+        else:
+            preamble.append(
+                self._format_option(job.num_tasks, '--ntasks={0}'),
+            )
+        preamble += [
             self._format_option(job.num_tasks_per_node,
                                 '--ntasks-per-node={0}'),
             self._format_option(job.num_tasks_per_core,

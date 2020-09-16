@@ -425,6 +425,7 @@ class RegressionTest(metaclass=RegressionTestMeta):
     #: .. |--flex-alloc-nodes| replace:: :attr:`--flex-alloc-nodes`
     #: .. _--flex-alloc-nodes: manpage.html#cmdoption-flex-alloc-nodes
     num_tasks = fields.TypedField('num_tasks', int)
+    num_nodes = fields.TypedField('num_nodes', int, type(None))
 
     #: Number of tasks per node required by this test.
     #:
@@ -741,6 +742,7 @@ class RegressionTest(metaclass=RegressionTestMeta):
 
         # Default is a single node check
         self.num_tasks = 1
+        self.num_nodes = None
         self.num_tasks_per_node = None
         self.num_gpus_per_node = 0
         self.num_cpus_per_task = None
@@ -1252,6 +1254,7 @@ class RegressionTest(metaclass=RegressionTestMeta):
                 self.prerun_cmds += prepare_container
 
         self.job.num_tasks = self.num_tasks
+        self.job.num_nodes = self.num_nodes
         self.job.num_tasks_per_node = self.num_tasks_per_node
         self.job.num_tasks_per_core = self.num_tasks_per_core
         self.job.num_cpus_per_task = self.num_cpus_per_task

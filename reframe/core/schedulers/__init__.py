@@ -103,6 +103,7 @@ class Job:
     '''
 
     num_tasks = fields.TypedField('num_tasks', int)
+    num_nodes = fields.TypedField('num_nodes', int, type(None))
     num_tasks_per_node = fields.TypedField('num_tasks_per_node',
                                            int,  type(None))
     num_tasks_per_core = fields.TypedField('num_tasks_per_core',
@@ -210,6 +211,7 @@ class Job:
 
         # Mutable fields
         self.num_tasks = 1
+        self.num_nodes = None
         self.num_tasks_per_node = None
         self.num_tasks_per_core = None
         self.num_tasks_per_socket = None
