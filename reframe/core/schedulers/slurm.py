@@ -74,7 +74,7 @@ class SlurmJobScheduler(sched.JobScheduler):
     # blocked, so as to cancel it if it is blocked indefinitely. The following
     # variable controls the frequency of squeue polling compared to the
     # standard job state polling using sacct.
-    SACCT_SQUEUE_RATIO = 10
+    SACCT_SQUEUE_RATIO = 50
 
     # This matches the format for both normal jobs as well as job arrays.
     # For job arrays the job_id has one of the following formats:
